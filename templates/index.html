@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIP 密码破解工具</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">🔓</span>
+                <span class="logo-text">ZIP Cracker</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard', this)">
+                <span class="nav-icon">📊</span>
+                <span>仪表盘</span>
+            </a>
+            <a href="#" class="nav-item" data-page="attack" onclick="switchPage('attack', this)">
+                <span class="nav-icon">⚔️</span>
+                <span>攻击配置</span>
+            </a>
+            <a href="#" class="nav-item" data-page="dictionary" onclick="switchPage('dictionary', this)">
+                <span class="nav-icon">📖</span>
+                <span>字典管理</span>
+            </a>
+            <a href="#" class="nav-item" data-page="settings" onclick="switchPage('settings', this)">
+                <span class="nav-icon">⚙️</span>
+                <span>系统设置</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="version-info">v2.0 · Web UI</div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 顶部栏 -->
+        <header class="topbar">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h1 class="page-title" id="pageTitle">仪表盘</h1>
+            <div class="topbar-right">
+                <span class="status-badge" id="globalStatus">待命</span>
+            </div>
+        </header>
+
+        <!-- ====== 仪表盘页面 ====== -->
+        <div class="page active" id="page-dashboard">
+            <!-- 文件上传区 -->
+            <div class="card upload-card" id="uploadCard">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('zipFileInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">点击选择或拖拽 ZIP 文件到此处</div>
+                    <div class="upload-hint">支持 ZipCrypto 和 AES 加密</div>
+                    <input type="file" id="zipFileInput" accept=".zip" style="display:none"
+                        onchange="handleFileUpload(this)">
+                </div>
+            </div>
+
+            <!-- 文件信息卡 -->
+            <div class="card file-info-card hidden" id="fileInfoCard">
+                <div class="card-header">
+                    <h3>📋 文件信息</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="resetFile()">更换文件</button>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">文件名</span>
+                        <span class="info-value" id="infoFilename">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">文件大小</span>
+                        <span class="info-value" id="infoFilesize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">加密类型</span>
+                        <span class="info-value" id="infoEncryption">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">文件数量</span>
+                        <span class="info-value" id="infoFileCount">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 统计卡片组 -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon speed-icon">⚡</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statSpeed">0/秒</div>
+                        <div class="stat-label">破解速度</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon tried-icon">🔢</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statTried">0</div>
+                        <div class="stat-label">已尝试</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon time-icon">⏱️</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statElapsed">0秒</div>
+                        <div class="stat-label">已用时间</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon eta-icon">🏁</div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="statEta">-</div>
+                        <div class="stat-label">预计剩余</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度区域 -->
+            <div class="card progress-card" id="progressCard">
+                <div class="card-header">
+                    <h3>📈 破解进度</h3>
+                    <span class="phase-badge" id="phaseLabel">等待开始</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+                <div class="progress-detail">
+                    <span id="progressDetail">准备就绪</span>
+                    <span id="currentPwd" class="current-pwd"></span>
+                </div>
+            </div>
+
+            <!-- 结果区域 -->
+            <div class="card result-card hidden" id="resultCard">
+                <div class="result-icon">🎉</div>
+                <div class="result-title">密码破解成功！</div>
+                <div class="result-password" id="resultPassword"></div>
+                <button class="btn btn-primary" onclick="copyPassword()">📋 复制密码</button>
+            </div>
+        </div>
+
+        <!-- ====== 攻击配置页面 ====== -->
+        <div class="page" id="page-attack">
+            <div class="card">
+                <div class="card-header">
+                    <h3>⚔️ 攻击模式</h3>
+                </div>
+                <div class="mode-selector">
+                    <label class="mode-option selected" onclick="selectMode('auto', this)">
+                        <input type="radio" name="attackMode" value="auto" checked>
+                        <div class="mode-card">
+                            <div class="mode-icon">🤖</div>
+                            <div class="mode-name">全自动</div>
+                            <div class="mode-desc">字典 → 数字 → 字母数字 → 全字符，逐步递进</div>
+                        </div>
+                    </label>
+                    <label class="mode-option" onclick="selectMode('dict', this)">
+                        <input type="radio" name="attackMode" value="dict">
+                        <div class="mode-card">
+                            <div class="mode-icon">📖</div>
+                            <div class="mode-name">字典攻击</div>
+                            <div class="mode-desc">使用内置 + 外部字典逐个尝试</div>
+                        </div>
+                    </label>
+                    <label class="mode-option" onclick="selectMode('bruteforce', this)">
+                        <input type="radio" name="attackMode" value="bruteforce">
+                        <div class="mode-card">
+                            <div class="mode-icon">💪</div>
+                            <div class="mode-name">暴力破解</div>
+                            <div class="mode-desc">指定字符集和长度，穷举所有组合</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 暴力破解设置 -->
+            <div class="card" id="bruteforceConfig">
+                <div class="card-header">
+                    <h3>🔤 字符集选择</h3>
+                </div>
+                <div class="charset-grid" id="charsetGrid">
+                    <!-- 动态生成 -->
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label class="form-label">密码长度范围</label>
+                    <div class="range-group">
+                        <div class="range-input">
+                            <span class="range-label">最小</span>
+                            <input type="number" id="minLen" value="1" min="1" max="20" class="input-field small-input">
+                            <span class="range-unit">位</span>
+                        </div>
+                        <span class="range-separator">—</span>
+                        <div class="range-input">
+                            <span class="range-label">最大</span>
+                            <input type="number" id="maxLen" value="6" min="1" max="20" class="input-field small-input">
+                            <span class="range-unit">位</span>
+                        </div>
+                    </div>
+                    <div class="combinations-preview" id="combinationsPreview">
+                        总组合数: 计算中...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 字典选择 -->
+            <div class="card" id="dictConfig">
+                <div class="card-header">
+                    <h3>📖 字典选择</h3>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="useBuiltinDict" checked>
+                        <span>使用内置字典 (<span id="builtinDictSize">~500</span> 条)</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">外部字典文件</label>
+                    <select id="dictSelect" class="input-field">
+                        <option value="">不使用外部字典</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 模糊密码 -->
+            <div class="card" id="fuzzyConfig">
+                <div class="card-header">
+                    <h3>🧩 模糊密码（可选，优先扫描）</h3>
+                    <span class="phase-badge" id="fuzzyCount" style="display:none">0 个候选</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">记忆碎片（每行一个。记得密码的某些部分，但不确定完整内容）</label>
+                    <textarea id="fuzzyFragments" class="input-field" rows="3"
+                        placeholder="例如：&#10;love&#10;123&#10;wang" oninput="updateFuzzyPreview()"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">掩码模式（高级。?d=数字 ?l=小写 ?u=大写 ?a=字母 ?s=符号）</label>
+                    <textarea id="fuzzyMasks" class="input-field" rows="2"
+                        placeholder="例如：&#10;love?d?d?d&#10;abc?l?l?d?d" oninput="updateFuzzyPreview()"></textarea>
+                </div>
+                <div class="combinations-preview" id="fuzzyPreview" style="display:none">
+                    <div id="fuzzyPreviewText">预计生成: 0 个候选密码</div>
+                    <div id="fuzzyPreviewSamples"
+                        style="margin-top:0.5rem; font-family:monospace; color:var(--accent); font-size:0.85rem"></div>
+                </div>
+            </div>
+
+            <!-- 启动按钮 -->
+            <div class="action-bar">
+                <button class="btn btn-primary btn-lg" id="startBtn" onclick="startAttack()">
+                    🚀 开始破解
+                </button>
+                <button class="btn btn-danger btn-lg hidden" id="stopBtn" onclick="stopAttack()">
+                    ⏹ 停止
+                </button>
+            </div>
+        </div>
+
+        <!-- ====== 字典管理页面 ====== -->
+        <div class="page" id="page-dictionary">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📖 字典文件管理</h3>
+                    <button class="btn btn-primary btn-sm" onclick="document.getElementById('dictFileInput').click()">
+                        ➕ 上传字典
+                    </button>
+                    <input type="file" id="dictFileInput" accept=".txt" style="display:none"
+                        onchange="handleDictUpload(this)">
+                </div>
+                <div class="dict-list" id="dictList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📂</div>
+                        <div>暂无字典文件</div>
+                        <div class="empty-hint">上传 .txt 格式字典文件，每行一个密码</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>💡 推荐字典</h3>
+                </div>
+                <div class="tip-content">
+                    <p>• <strong>rockyou.txt</strong> — 最流行的密码字典，约 1400 万条密码</p>
+                    <p>• <strong>SecLists</strong> — GitHub 上的综合密码表集合</p>
+                    <p>• 支持任意 .txt 格式字典文件，每行一个密码，UTF-8 编码</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== 系统设置页面 ====== -->
+        <div class="page" id="page-settings">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🖥️ CPU 核心数</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">并发进程数量</label>
+                    <div class="slider-group">
+                        <input type="range" id="workersSlider" min="1" max="16" value="4" class="slider"
+                            oninput="updateWorkersDisplay()">
+                        <span class="slider-value" id="workersDisplay">4 核</span>
+                    </div>
+                    <div class="slider-hint">
+                        更多核心 = 更快速度，但会占用更多系统资源。建议保留 1-2 核给其他程序。
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 系统信息</h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">CPU 核心数</span>
+                        <span class="info-value" id="sysCpuCount">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">内置字典大小</span>
+                        <span class="info-value" id="sysBuiltinSize">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">服务端口</span>
+                        <span class="info-value">5000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ============================================================
+        //  全局状态
+        // ============================================================
+        let state = {
+            zipPath: '',
+            zipInfo: null,
+            mode: 'auto',
+            charset: 'digits',
+            minLen: 1,
+            maxLen: 6,
+            workers: 4,
+            systemInfo: null,
+            running: false,
+            eventSource: null,
+        };
+
+        // ============================================================
+        //  初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSystemInfo();
+            loadDictionaries();
+            startProgressStream();
+            setupDragDrop();
+        });
+
+        async function loadSystemInfo() {
+            try {
+                const res = await fetch('/api/system');
+                const data = await res.json();
+                state.systemInfo = data;
+                state.workers = data.cpu_count;
+
+                document.getElementById('sysCpuCount').textContent = data.cpu_count + ' 核';
+                document.getElementById('sysBuiltinSize').textContent = data.builtin_dict_size + ' 条';
+                document.getElementById('builtinDictSize').textContent = data.builtin_dict_size;
+
+                const slider = document.getElementById('workersSlider');
+                slider.max = data.cpu_count;
+                slider.value = Math.max(1, data.cpu_count - 1);
+                state.workers = parseInt(slider.value);
+                updateWorkersDisplay();
+
+                // 生成字符集选项
+                buildCharsetGrid(data.charsets);
+            } catch (e) {
+                console.error('加载系统信息失败:', e);
+            }
+        }
+
+        function buildCharsetGrid(charsets) {
+            const grid = document.getElementById('charsetGrid');
+            grid.innerHTML = '';
+            const order = ['digits', 'lower', 'upper', 'alpha', 'alnum', 'alnumcase', 'all'];
+            for (const key of order) {
+                const cs = charsets[key];
+                if (!cs) continue;
+                const isSelected = key === state.charset;
+                const div = document.createElement('div');
+                div.className = 'charset-option' + (isSelected ? ' selected' : '');
+                div.dataset.charset = key;
+                div.onclick = () => selectCharset(key, div);
+                div.innerHTML = `
+                <div class="charset-name">${cs.label}</div>
+                <div class="charset-preview">${cs.preview}</div>
+                <div class="charset-size">${cs.size} 种字符</div>
+            `;
+                grid.appendChild(div);
+            }
+            updateCombinations();
+        }
+
+        function selectCharset(key, el) {
+            document.querySelectorAll('.charset-option').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            state.charset = key;
+            updateCombinations();
+        }
+
+        function updateCombinations() {
+            const cs = state.systemInfo?.charsets?.[state.charset];
+            if (!cs) return;
+            const minLen = parseInt(document.getElementById('minLen').value) || 1;
+            const maxLen = parseInt(document.getElementById('maxLen').value) || 6;
+            let total = 0;
+            for (let l = minLen; l <= maxLen; l++) {
+                total += Math.pow(cs.size, l);
+            }
+            const preview = document.getElementById('combinationsPreview');
+            let totalStr;
+            if (total < 1000) totalStr = total.toString();
+            else if (total < 1e6) totalStr = (total / 1000).toFixed(1) + 'K';
+            else if (total < 1e9) totalStr = (total / 1e6).toFixed(1) + 'M';
+            else if (total < 1e12) totalStr = (total / 1e9).toFixed(1) + 'B';
+            else totalStr = (total / 1e12).toFixed(1) + 'T';
+
+            let timeEst = '';
+            const speed = 5000; // 假设每秒 5000 次
+            const seconds = total / speed;
+            if (seconds < 60) timeEst = `约 ${seconds.toFixed(0)} 秒`;
+            else if (seconds < 3600) timeEst = `约 ${(seconds / 60).toFixed(1)} 分钟`;
+            else if (seconds < 86400) timeEst = `约 ${(seconds / 3600).toFixed(1)} 小时`;
+            else if (seconds < 86400 * 365) timeEst = `约 ${(seconds / 86400).toFixed(1)} 天`;
+            else timeEst = `约 ${(seconds / 86400 / 365).toFixed(0)} 年`;
+
+            preview.innerHTML = `总组合数: <strong>${totalStr}</strong> · 预估时间: <strong>${timeEst}</strong>`;
+        }
+
+        document.getElementById('minLen').addEventListener('input', updateCombinations);
+        document.getElementById('maxLen').addEventListener('input', updateCombinations);
+
+        // ============================================================
+        //  文件上传
+        // ============================================================
+        function setupDragDrop() {
+            const zone = document.getElementById('uploadZone');
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    uploadFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function handleFileUpload(input) {
+            if (input.files.length) {
+                uploadFile(input.files[0]);
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const zone = document.getElementById('uploadZone');
+            zone.innerHTML = `<div class="upload-icon spin">⏳</div><div class="upload-text">正在上传和分析...</div>`;
+
+            try {
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.error) {
+                    zone.innerHTML = `<div class="upload-icon">❌</div><div class="upload-text">${data.error}</div>`;
+                    return;
+                }
+
+                state.zipPath = data.filepath;
+                state.zipInfo = data;
+
+                // 显示文件信息
+                document.getElementById('infoFilename').textContent = data.filename;
+                document.getElementById('infoFilesize').textContent = data.filesize_fmt;
+                document.getElementById('infoEncryption').textContent = data.encryption_type;
+                document.getElementById('infoFileCount').textContent = data.file_count + ' 个文件';
+
+                document.getElementById('uploadCard').classList.add('hidden');
+                document.getElementById('fileInfoCard').classList.remove('hidden');
+
+                if (!data.is_encrypted) {
+                    showToast('该 ZIP 文件没有加密，无需破解！', 'info');
+                }
+            } catch (e) {
+                zone.innerHTML = `<div class="upload-icon">❌</div><div class="upload-text">上传失败: ${e.message}</div>`;
+            }
+        }
+
+        function resetFile() {
+            state.zipPath = '';
+            state.zipInfo = null;
+            document.getElementById('uploadCard').classList.remove('hidden');
+            document.getElementById('fileInfoCard').classList.add('hidden');
+            document.getElementById('resultCard').classList.add('hidden');
+            const zone = document.getElementById('uploadZone');
+            zone.innerHTML = `
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">点击选择或拖拽 ZIP 文件到此处</div>
+            <div class="upload-hint">支持 ZipCrypto 和 AES 加密</div>
+            <input type="file" id="zipFileInput" accept=".zip" style="display:none" onchange="handleFileUpload(this)">
+        `;
+            zone.onclick = () => document.getElementById('zipFileInput').click();
+        }
+
+        // ============================================================
+        //  攻击控制
+        // ============================================================
+        function selectMode(mode, el) {
+            document.querySelectorAll('.mode-option').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            state.mode = mode;
+        }
+
+        async function startAttack() {
+            if (!state.zipPath) {
+                showToast('请先上传 ZIP 文件！', 'warning');
+                switchPage('dashboard', document.querySelector('[data-page="dashboard"]'));
+                return;
+            }
+
+            const fragText = document.getElementById('fuzzyFragments').value.trim();
+            const maskText = document.getElementById('fuzzyMasks').value.trim();
+            const hasFuzzy = fragText.length > 0 || maskText.length > 0;
+
+            let finalMode = state.mode;
+            if (hasFuzzy) {
+                finalMode = 'fuzzy';
+            }
+
+            const config = {
+                zip_path: state.zipPath,
+                mode: finalMode,
+                charset: state.charset,
+                min_len: parseInt(document.getElementById('minLen').value) || 1,
+                max_len: parseInt(document.getElementById('maxLen').value) || 6,
+                workers: state.workers,
+                use_pyzipper: state.zipInfo?.needs_pyzipper || false,
+            };
+
+            // 字典文件
+            const dictSelect = document.getElementById('dictSelect');
+            if (dictSelect.value) {
+                config.dict_file = dictSelect.value;
+            }
+
+            // 模糊密码参数
+            if (fragText) {
+                config.fragments = fragText.split('\n').map(s => s.trim()).filter(s => s);
+            }
+            if (maskText) {
+                config.masks = maskText.split('\n').map(s => s.trim()).filter(s => s);
+            }
+
+            try {
+                const res = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config),
+                });
+                const data = await res.json();
+
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    return;
+                }
+
+                state.running = true;
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                document.getElementById('globalStatus').textContent = '运行中';
+                document.getElementById('globalStatus').className = 'status-badge running';
+                document.getElementById('resultCard').classList.add('hidden');
+
+                switchPage('dashboard', document.querySelector('[data-page="dashboard"]'));
+            } catch (e) {
+                showToast('启动失败: ' + e.message, 'error');
+            }
+        }
+
+        async function stopAttack() {
+            try {
+                await fetch('/api/stop', { method: 'POST' });
+                showToast('正在终止任务...', 'warning');
+                onTaskComplete(); // 立即在前端重置状态
+            } catch (e) {
+                showToast('停止失败: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================
+        //  SSE 进度流
+        // ============================================================
+        function startProgressStream() {
+            if (state.eventSource) state.eventSource.close();
+
+            state.eventSource = new EventSource('/api/progress');
+            state.eventSource.onmessage = function (e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    updateProgress(data);
+                } catch (err) { }
+            };
+            state.eventSource.onerror = function () {
+                setTimeout(startProgressStream, 3000);
+            };
+        }
+
+        function updateProgress(data) {
+            // 进度条
+            const pct = data.percent || 0;
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressText').textContent = pct.toFixed(1) + '%';
+
+            // 统计卡
+            document.getElementById('statSpeed').textContent = data.speed_fmt || '0/秒';
+            document.getElementById('statTried').textContent = formatNum(data.tried || 0);
+            document.getElementById('statElapsed').textContent = data.elapsed_fmt || '0秒';
+            document.getElementById('statEta').textContent = data.eta_fmt || '-';
+
+            // 阶段
+            document.getElementById('phaseLabel').textContent = data.phase || '等待开始';
+            document.getElementById('currentPwd').textContent = data.current_pwd || '';
+
+            if (data.total > 0) {
+                document.getElementById('progressDetail').textContent =
+                    `${formatNum(data.tried)} / ${formatNum(data.total)}`;
+            }
+
+            // 结果
+            if (data.result) {
+                document.getElementById('resultPassword').textContent = data.result;
+                document.getElementById('resultCard').classList.remove('hidden');
+                onTaskComplete();
+            }
+
+            // 状态切换
+            if (data.running && !state.running) {
+                state.running = true;
+                document.getElementById('startBtn').classList.add('hidden');
+                document.getElementById('stopBtn').classList.remove('hidden');
+                document.getElementById('globalStatus').textContent = '运行中';
+                document.getElementById('globalStatus').className = 'status-badge running';
+            } else if (!data.running && state.running) {
+                onTaskComplete();
+            }
+        }
+
+        function onTaskComplete() {
+            state.running = false;
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('globalStatus').textContent = '已完成';
+            document.getElementById('globalStatus').className = 'status-badge done';
+        }
+
+        function formatNum(n) {
+            if (n < 1000) return n.toString();
+            if (n < 1e6) return (n / 1000).toFixed(1) + 'K';
+            if (n < 1e9) return (n / 1e6).toFixed(1) + 'M';
+            return (n / 1e9).toFixed(1) + 'B';
+        }
+
+        // ============================================================
+        //  字典管理
+        // ============================================================
+        async function loadDictionaries() {
+            try {
+                const res = await fetch('/api/dictionaries');
+                const data = await res.json();
+                renderDictList(data);
+                renderDictSelect(data);
+            } catch (e) { }
+        }
+
+        function renderDictList(dicts) {
+            const list = document.getElementById('dictList');
+            if (!dicts.length) {
+                list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📂</div>
+                    <div>暂无字典文件</div>
+                    <div class="empty-hint">上传 .txt 格式字典文件，每行一个密码</div>
+                </div>`;
+                return;
+            }
+            list.innerHTML = dicts.map(d => `
+            <div class="dict-item">
+                <div class="dict-info">
+                    <div class="dict-name">📄 ${d.name}</div>
+                    <div class="dict-meta">${d.line_count_fmt} 条密码 · ${d.size_fmt}</div>
+                </div>
+                <button class="btn btn-ghost btn-sm btn-danger-text" onclick="deleteDict('${d.name}')">🗑️ 删除</button>
+            </div>
+        `).join('');
+        }
+
+        function renderDictSelect(dicts) {
+            const sel = document.getElementById('dictSelect');
+            sel.innerHTML = '<option value="">不使用外部字典</option>';
+            dicts.forEach(d => {
+                sel.innerHTML += `<option value="${d.path}">${d.name} (${d.line_count_fmt} 条)</option>`;
+            });
+        }
+
+        async function handleDictUpload(input) {
+            if (!input.files.length) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/dictionaries', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.error) {
+                    showToast(data.error, 'error');
+                } else {
+                    showToast(`字典 ${data.name} 上传成功！${data.line_count_fmt} 条密码`, 'success');
+                    loadDictionaries();
+                }
+            } catch (e) {
+                showToast('上传失败', 'error');
+            }
+            input.value = '';
+        }
+
+        async function deleteDict(name) {
+            if (!confirm(`确定删除字典 ${name} ？`)) return;
+            try {
+                await fetch(`/api/dictionaries/${name}`, { method: 'DELETE' });
+                loadDictionaries();
+                showToast('已删除', 'info');
+            } catch (e) { }
+        }
+
+        // ============================================================
+        //  设置
+        // ============================================================
+        function updateWorkersDisplay() {
+            const val = document.getElementById('workersSlider').value;
+            document.getElementById('workersDisplay').textContent = val + ' 核';
+            state.workers = parseInt(val);
+        }
+
+        // ============================================================
+        //  导航
+        // ============================================================
+        function switchPage(page, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            if (el) el.classList.add('active');
+
+            const titles = { dashboard: '仪表盘', attack: '攻击配置', dictionary: '字典管理', settings: '系统设置' };
+            document.getElementById('pageTitle').textContent = titles[page] || '';
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        // ============================================================
+        //  Toast 通知
+        // ============================================================
+        function showToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌' };
+            toast.innerHTML = `<span>${icons[type] || ''} ${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ============================================================
+        //  复制密码
+        // ============================================================
+        function copyPassword() {
+            const pwd = document.getElementById('resultPassword').textContent;
+            navigator.clipboard.writeText(pwd).then(() => {
+                showToast('密码已复制到剪贴板！', 'success');
+            });
+        }
+
+        // ============================================================
+        //  模糊密码预览
+        // ============================================================
+        let fuzzyTimer = null;
+        function updateFuzzyPreview() {
+            clearTimeout(fuzzyTimer);
+            fuzzyTimer = setTimeout(doFuzzyPreview, 500);
+        }
+
+        async function doFuzzyPreview() {
+            const fragText = document.getElementById('fuzzyFragments').value.trim();
+            const maskText = document.getElementById('fuzzyMasks').value.trim();
+            const previewDiv = document.getElementById('fuzzyPreview');
+            const countBadge = document.getElementById('fuzzyCount');
+
+            if (!fragText && !maskText) {
+                previewDiv.style.display = 'none';
+                countBadge.style.display = 'none';
+                return;
+            }
+
+            const fragments = fragText ? fragText.split('\n').map(s => s.trim()).filter(s => s) : [];
+            const masks = maskText ? maskText.split('\n').map(s => s.trim()).filter(s => s) : [];
+
+            try {
+                const res = await fetch('/api/fuzzy_preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fragments, masks }),
+                });
+                const data = await res.json();
+
+                previewDiv.style.display = 'block';
+                countBadge.style.display = 'inline-block';
+
+                let countStr = data.count;
+                if (data.count >= 1e6) countStr = (data.count / 1e6).toFixed(1) + 'M';
+                else if (data.count >= 1e3) countStr = (data.count / 1e3).toFixed(1) + 'K';
+
+                countBadge.textContent = countStr + ' 个候选';
+                document.getElementById('fuzzyPreviewText').textContent = `预计生成: ${countStr} 个优先候选密码`;
+
+                if (data.preview && data.preview.length > 0) {
+                    document.getElementById('fuzzyPreviewSamples').textContent =
+                        '示例: ' + data.preview.slice(0, 10).join(', ') + (data.count > 10 ? ' ...' : '');
+                } else {
+                    document.getElementById('fuzzyPreviewSamples').textContent = '';
+                }
+            } catch (e) {
+                previewDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>

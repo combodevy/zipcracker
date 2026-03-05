@@ -17,6 +17,7 @@ import argparse
 import binascii
 import itertools
 import multiprocessing
+import operator
 import os
 import string
 import struct
@@ -179,7 +180,7 @@ def get_test_files(zip_path, use_pyzipper=False):
     """获取 ZIP 内用于密码测试的文件信息（优先选最小的非目录文件）"""
     try:
         if use_pyzipper:
-            import pyzipper
+            import pyzipper  # type: ignore
             with pyzipper.AESZipFile(zip_path, 'r') as zf:
                 infos = [i for i in zf.infolist() if i.file_size > 0]
         else:
@@ -189,16 +190,16 @@ def get_test_files(zip_path, use_pyzipper=False):
         if not infos:
             # 回退：返回所有文件名
             if use_pyzipper:
-                import pyzipper
+                import pyzipper  # type: ignore
                 with pyzipper.AESZipFile(zip_path, 'r') as zf:
-                    return zf.namelist()[:2]
+                    return operator.getitem(zf.namelist(), slice(0, 2))
             else:
                 with zipfile.ZipFile(zip_path, 'r') as zf:
-                    return zf.namelist()[:2]
+                    return operator.getitem(zf.namelist(), slice(0, 2))
         
         # 按文件大小排序，选最小的（最多2个用于交叉验证）
         infos.sort(key=lambda x: x.file_size)
-        return [i.filename for i in infos[:3]]
+        return [i.filename for i in operator.getitem(infos, slice(0, 3))]
     except Exception:
         return None
 
@@ -222,10 +223,10 @@ def try_password(zip_path, password, test_files=None):
                     infos.sort(key=lambda x: x.file_size)
                     files_to_check = [infos[0].filename]
                 else:
-                    files_to_check = zf.namelist()[:1]
+                    files_to_check = operator.getitem(zf.namelist(), slice(0, 1))
             
             # 至少验证一个文件，读取内容并校验 CRC32
-            for fname in files_to_check[:1]:
+            for fname in operator.getitem(files_to_check, slice(0, 1)):
                 info = zf.getinfo(fname)
                 data = zf.read(fname, pwd=pwd_bytes)
                 # 手动校验 CRC32
@@ -245,7 +246,7 @@ def try_password(zip_path, password, test_files=None):
 def try_password_pyzipper(zip_path, password, test_files=None):
     """使用 pyzipper 尝试 AES 加密的 ZIP（AES 自带 HMAC 验证，更可靠）"""
     try:
-        import pyzipper
+        import pyzipper  # type: ignore
         pwd_bytes = password.encode('utf-8')
         with pyzipper.AESZipFile(zip_path, 'r') as zf:
             files_to_check = test_files
@@ -255,9 +256,9 @@ def try_password_pyzipper(zip_path, password, test_files=None):
                     infos.sort(key=lambda x: x.file_size)
                     files_to_check = [infos[0].filename]
                 else:
-                    files_to_check = zf.namelist()[:1]
+                    files_to_check = operator.getitem(zf.namelist(), slice(0, 1))
             
-            for fname in files_to_check[:1]:
+            for fname in operator.getitem(files_to_check, slice(0, 1)):
                 data = zf.read(fname, pwd=pwd_bytes)
                 # AES 加密有 HMAC 校验，如果读取成功数据就是正确的
                 # 但额外做 CRC 校验更安全
@@ -281,7 +282,7 @@ def verify_password(zip_path, password, use_pyzipper=False):
         pwd_bytes = password.encode('utf-8')
         
         if use_pyzipper:
-            import pyzipper
+            import pyzipper  # type: ignore
             zf_class = pyzipper.AESZipFile
         else:
             zf_class = zipfile.ZipFile
@@ -290,14 +291,14 @@ def verify_password(zip_path, password, use_pyzipper=False):
             # 获取所有非空文件
             infos = [i for i in zf.infolist() if i.file_size > 0]
             if not infos:
-                infos = [zf.getinfo(n) for n in zf.namelist()[:1]]
+                infos = [zf.getinfo(n) for n in operator.getitem(zf.namelist(), slice(0, 1))]
             
             # 按大小排序，验证最小的几个文件（最多3个）
             infos.sort(key=lambda x: x.file_size)
-            check_infos = infos[:min(3, len(infos))]
+            check_infos = operator.getitem(infos, slice(0, min(3, len(infos))))
             
             for info in check_infos:
-                data = zf.read(info.filename, pwd=pwd_bytes)
+                data = zf.read(info.filename, pwd=pwd_bytes)  # type: ignore
                 if info.CRC:
                     actual_crc = binascii.crc32(data) & 0xFFFFFFFF
                     if actual_crc != info.CRC:
@@ -313,7 +314,7 @@ def try_batch(args):
     zip_path, passwords, use_pyzipper = args
     try_func = try_password_pyzipper if use_pyzipper else try_password
     for pwd in passwords:
-        result = try_func(zip_path, pwd)
+        result = try_func(zip_path, pwd)  # type: ignore
         if result:
             return result
     return None
@@ -338,14 +339,15 @@ def format_time(seconds):
 
 def format_number(n):
     """格式化大数字"""
-    if n < 1000:
-        return str(n)
-    elif n < 1_000_000:
-        return f"{n/1000:.1f}K"
-    elif n < 1_000_000_000:
-        return f"{n/1_000_000:.1f}M"
+    v = int(n)
+    if v < 1000:
+        return str(v)
+    elif v < 1_000_000:
+        return f"{v/1000:.1f}K"
+    elif v < 1_000_000_000:
+        return f"{v/1_000_000:.1f}M"
     else:
-        return f"{n/1_000_000_000:.1f}B"
+        return f"{v/1_000_000_000:.1f}B"
 
 
 def print_progress(tried, total, start_time, current_pwd="", phase=""):
@@ -364,7 +366,7 @@ def print_progress(tried, total, start_time, current_pwd="", phase=""):
             f"{format_number(tried)}/{format_number(total)} | "
             f"{format_number(speed)}/秒 | "
             f"剩余 {format_time(remaining)} | "
-            f"{current_pwd[:20]}"
+            f"{operator.getitem(str(current_pwd), slice(0, 20))}"
             f"          "
         )
     else:
@@ -372,7 +374,7 @@ def print_progress(tried, total, start_time, current_pwd="", phase=""):
             f"\r  已尝试 {format_number(tried)} | "
             f"{format_number(speed)}/秒 | "
             f"耗时 {format_time(elapsed)} | "
-            f"{current_pwd[:20]}"
+            f"{operator.getitem(str(current_pwd), slice(0, 20))}"
             f"          "
         )
     sys.stdout.flush()
@@ -461,19 +463,21 @@ def bruteforce_attack(zip_path, charset_name="digits", min_len=1, max_len=6,
                       use_pyzipper=False, workers=None):
     """暴力破解攻击"""
     charset = CHARSETS.get(charset_name, charset_name)
-    total = calc_total_combinations(len(charset), min_len, max_len)
+    total = calc_total_combinations(len(str(charset)), min_len, max_len)
     
     if workers is None:
         workers = multiprocessing.cpu_count()
     
     print(f"\n{'='*60}")
     print(f"  ▶ 暴力破解 [{charset_name}]")
-    print(f"    字符集: {charset[:30]}{'...' if len(charset) > 30 else ''} ({len(charset)}种字符)")
+    cs_str = str(charset)
+    cs_preview = operator.getitem(cs_str, slice(0, 30))
+    print(f"    字符集: {cs_preview}{'...' if len(cs_str) > 30 else ''} ({len(cs_str)}种字符)")
     print(f"    长度: {min_len}-{max_len}位 | 总组合: {format_number(total)} | 进程数: {workers}")
     print(f"{'='*60}")
     
     start_time = time.time()
-    batch_size = max(500, min(50000, total // (workers * 20)))
+    batch_size = max(500, min(50000, int(total) // (int(workers) * 20)))
     
     result = None
     tried = 0
@@ -492,10 +496,10 @@ def bruteforce_attack(zip_path, charset_name="digits", min_len=1, max_len=6,
                 current_pwd_display = batch[0]
                 
                 # 分成子批次发给每个进程
-                sub_batch_size = max(100, len(batch) // workers)
+                sub_batch_size = max(100, len(batch) // int(workers))
                 sub_batches = []
                 for i in range(0, len(batch), sub_batch_size):
-                    sub = batch[i:i + sub_batch_size]
+                    sub = operator.getitem(batch, slice(i, i + sub_batch_size))
                     sub_batches.append((zip_path, sub, use_pyzipper))
                 
                 async_results = pool.map_async(try_batch, sub_batches)
@@ -517,7 +521,7 @@ def bruteforce_attack(zip_path, charset_name="digits", min_len=1, max_len=6,
                         else:
                             print(f"  ⚠ 误报，继续搜索...")
                 
-                tried += len(batch)
+                tried = int(tried) + int(len(batch))  # type: ignore
                 
                 if result:
                     break
@@ -651,7 +655,7 @@ def run_self_test():
         # 使用 Python 创建带密码的 ZIP（需要 pyzipper 或 pyminizip）
         # 回退方案：直接用 zipfile + 已知密码测试密码验证逻辑
         try:
-            import pyzipper
+            import pyzipper  # type: ignore
             with pyzipper.AESZipFile(test_zip, 'w',
                                      compression=pyzipper.ZIP_DEFLATED,
                                      encryption=pyzipper.WZ_AES) as zf:
@@ -673,7 +677,7 @@ def run_self_test():
         # 测试2: 暴力破解
         test_zip2 = os.path.join(tmp_dir, "test2.zip")
         try:
-            import pyzipper
+            import pyzipper  # type: ignore
             with pyzipper.AESZipFile(test_zip2, 'w',
                                      compression=pyzipper.ZIP_DEFLATED,
                                      encryption=pyzipper.WZ_AES) as zf:
@@ -751,7 +755,7 @@ def interactive_mode():
     
     if needs_pyzipper:
         try:
-            import pyzipper
+            import pyzipper  # type: ignore
             print("  ℹ️ 检测到 AES 加密，使用 pyzipper 引擎")
         except ImportError:
             print("  ❌ 该 ZIP 使用 AES 加密，需要安装 pyzipper:")
@@ -802,7 +806,7 @@ def main():
         
         if needs_pyzipper:
             try:
-                import pyzipper
+                import pyzipper  # type: ignore
                 print("  ℹ️ 检测到 AES 加密，使用 pyzipper 引擎")
             except ImportError:
                 print("  ❌ 该 ZIP 使用 AES 加密，需要安装 pyzipper:")
@@ -874,7 +878,7 @@ def main():
     
     if needs_pyzipper:
         try:
-            import pyzipper
+            import pyzipper  # type: ignore
             print("  ℹ️ 检测到 AES 加密，使用 pyzipper 引擎")
         except ImportError:
             print("  ❌ 该 ZIP 使用 AES 加密，需要安装 pyzipper:")
