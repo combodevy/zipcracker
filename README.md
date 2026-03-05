@@ -1,3 +1,4 @@
+正式版见另一分支 【Another branch for stable version】
 # 🔓 ZIP Password Cracker
 
 一款强大的 ZIP 压缩包密码破解工具，支持多种攻击策略、多进程加速和 AES 加密。（Antigravity+Claude）
