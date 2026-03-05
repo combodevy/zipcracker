@@ -50,5 +50,61 @@ python app.py
 3. 调整你想占用的 **CPU 核心数**
 4. 点击 **🚀 开始破解**！
 
+## 🐣 小白安装教程
+
+如果你完全没有编程经验，请按照下面的步骤操作：
+
+### 1. 安装 Python (这是运行工具的发动机)
+- 前往 [Python 官网](https://www.python.org/downloads/windows/) 下载最新版。
+- **关键一步**：安装时一定要勾选底部的 **"Add Python to PATH"**（将 Python 添加到路径），否则后面会报错！
+- 点击 "Install Now" 直到完成。
+
+### 2. 下载本工具
+- **如果你会用 Git**：在你要存放的文件夹打开终端，运行：
+  ```bash
+  git clone https://github.com/combodevy/zipcracker.git
+  cd zipcracker
+  ```
+- **如果你不会用 Git**：点击本页面顶部的绿色按钮 **"Code"**，选择 **"Download ZIP"**。下载后解压到电脑里的文件夹即可。
+
+### 3. 安装依赖软件
+- 在工具所在的文件夹空白处，按住键盘 **Shift 键** 同时 **点鼠标右键**，选择 “在此处打开 PowerShell 窗口” 或 “在终端中打开”。
+- 输入这行命令并按回车：
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+### 4. 运行工具
+- 在同一个黑框框里，输入并按回车：
+  ```bash
+  python app.py
+  ```
+- 当你看到屏幕提示 `Running on http://127.0.0.1:5000` 时，说明成功了！
+- 打开你的浏览器，在地址栏输入 `http://127.0.0.1:5000` 即可看到操作界面。
+
+---
+
+## ❓ 常见问题与解决 (救急手册)
+
+### Q: 克隆时报错 `RPC failed; curl 28 Recv failure: Connection was reset`？
+**A**: 这是网络连接不稳定。解决方法：
+1. **增加缓存**：输入 `git config --global http.postBuffer 524288000`
+2. **只克隆最新版**：输入 `git clone --depth 1 https://github.com/combodevy/zipcracker.git`
+
+### Q: 提示 `python` 或 `pip` 不是内部或外部命令？
+**A**: 说明你安装 Python 时忘记勾选 "Add to PATH" 了。
+- **解决**：卸载 Python 重新安装，并务必勾选那个选项；或者手动在系统环境变量里添加 Python 路径。
+
+### Q: 依赖安装很慢或超时？
+**A**: 试试国内加速镜像：
+```bash
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+### Q: 界面打不开（5000 端口被占用）？
+**A**: 可能是你之前运行过一次没关掉。关闭所有黑框框（终端）重新打开试试。
+
+---
+
 ## 📄 授权与声明
 本项目仅供网络安全学习、技术研究及合法找回本人遗失密码之用。严禁用于任何非法入侵破坏他人隐私及财物的活动。使用者产生之一切法律后果由其自行承担。
