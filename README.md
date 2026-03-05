@@ -1,76 +1,78 @@
 # 🔓 ZIP Password Cracker
 
-一款强大的 ZIP 压缩包密码破解工具，支持多种攻击策略、多进程加速和 AES 加密。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-## ✨ 特性
+A powerful ZIP archive password cracking tool supporting multiple attack strategies, multi-process acceleration, and AES encryption.
 
-- **全自动递进破解** — 内置字典 → 纯数字暴力 → 字母数字 → 全字符，自动逐步升级
-- **内置 500+ 常用密码字典** — 覆盖常见数字、英文、拼音、键盘模式等
-- **支持外部字典** — 可加载 `rockyou.txt` 等大型字典文件
-- **多进程并发** — 自动利用所有 CPU 核心加速破解
-- **CRC32 校验 + 二次验证** — 有效防止误报
-- **双加密支持** — 同时支持 ZipCrypto 和 AES 加密
-- **实时进度显示** — 进度条、速度、预计剩余时间
-- **交互模式** — 双击即可运行，支持拖拽文件
+## ✨ Features
 
-## 📦 环境要求
+- **Automatic Progressive Cracking** — Built-in dictionary → Pure digits brute-force → Alphanumeric → All characters, automatically upgrades step by step.
+- **500+ Built-in Common Password Dictionary** — Covers common digits, English words, Pinyin, keyboard patterns, etc.
+- **External Dictionary Support** — Can load large dictionary files like `rockyou.txt`.
+- **Multi-process Concurrency** — Automatically utilizes all CPU cores for acceleration.
+- **CRC32 Check + Secondary Verification** — Effectively prevents false positives.
+- **Dual Encryption Support** — Supports both ZipCrypto and AES encryption.
+- **Real-time Progress Display** — Progress bar, speed, estimated time remaining.
+- **Interactive Mode** — Ready to run with a double-click, supports drag-and-drop.
+
+## 📦 Requirements
 
 - **Python 3.6+**
-- （可选）`pyzipper` — 仅在破解 **AES 加密** 的 ZIP 时需要：
+- (Optional) `pyzipper` — Only needed for cracking **AES encrypted** ZIP files:
   ```bash
   pip install pyzipper
   ```
-  > 如果 `pip` 不可用，请使用：`python -m pip install pyzipper`
+  > If `pip` is unavailable, use: `python -m pip install pyzipper`
 
-## 🚀 使用方法
+## 🚀 Usage
 
-### 方式一：双击运行（推荐小白用户）
+### Method 1: Double-click to Run (Recommended for beginners)
 
-直接双击 `zip_cracker.py`，按照提示操作：
+Double-click `zip_cracker.py` and follow the prompts:
 
-1. 将 ZIP 文件**拖拽**到窗口中，按回车
-2. 如果有字典文件输入路径，没有直接按回车跳过
-3. 等待自动破解
+1. **Drag and drop** the ZIP file into the window and press Enter.
+2. If you have an external dictionary, enter its path; otherwise, press Enter to skip.
+3. Wait for automatic cracking.
 
-### 方式二：拖拽文件
+### Method 2: Drag-and-drop File
 
-将 ZIP 文件直接拖拽到 `zip_cracker.py` 文件图标上。
+Drag the ZIP file directly onto the `zip_cracker.py` file icon.
 
-### 方式三：命令行
+### Method 3: Command Line
 
 ```bash
-# 全自动模式（推荐）
-python zip_cracker.py 目标文件.zip
+# Automatic mode (recommended)
+python zip_cracker.py target_file.zip
 
-# 使用外部字典
-python zip_cracker.py 目标文件.zip -d 字典文件.txt
+# Using an external dictionary
+python zip_cracker.py target_file.zip -d dictionary_file.txt
 
-# 暴力破解 - 纯数字，最长6位
-python zip_cracker.py 目标文件.zip --mode bruteforce -c digits --max-len 6
+# Brute-force - pure digits, max 6 bits
+python zip_cracker.py target_file.zip --mode bruteforce -c digits --max-len 6
 
-# 暴力破解 - 小写字母+数字，最长5位
-python zip_cracker.py 目标文件.zip --mode bruteforce -c alnum --max-len 5
+# Brute-force - alphanumeric, max 5 bits
+python zip_cracker.py target_file.zip --mode bruteforce -c alnum --max-len 5
 
-# 自测模式
-python zip_cracker.py 目标文件.zip --test
+# Self-test mode
+python zip_cracker.py target_file.zip --test
 ```
 
-## 📊 自动破解策略
+## 📊 Automatic Cracking Strategy
 
-全自动模式按以下顺序递进，找到密码即停止：
+Automatic mode follows the sequence below and stops when the password is found:
 
-| 阶段 | 策略 | 范围 |
+| Stage | Strategy | Range |
 |:---:|------|------|
-| 1 | 内置常用密码字典 | ~500 个常见密码 |
-| 2 | 外部字典（如已提供） | 自定义 |
-| 3 | 暴力破解 - 纯数字 | 1~8 位 |
-| 4 | 暴力破解 - 小写字母+数字 | 1~5 位 |
-| 5 | 暴力破解 - 大小写+数字 | 1~4 位 |
-| 6 | 暴力破解 - 全字符集 | 1~4 位 |
+| 1 | Built-in Dictionary | ~500 common passwords |
+| 2 | External Dictionary (if provided) | Custom |
+| 3 | Brute-force - Pure Digits | 1~8 digits |
+| 4 | Brute-force - Lower Alphanumeric | 1~5 chars |
+| 5 | Brute-force - Case-sensitive Alphanumeric | 1~4 chars |
+| 6 | Brute-force - Full Character Set | 1~4 chars |
 
-## 🔤 可用字符集
+## 🔤 Available Character Sets
 
-| 名称 | 内容 | 字符数 |
+| Name | Content | Count |
 |------|------|:------:|
 | `digits` | `0-9` | 10 |
 | `lower` | `a-z` | 26 |
@@ -78,20 +80,20 @@ python zip_cracker.py 目标文件.zip --test
 | `alpha` | `a-zA-Z` | 52 |
 | `alnum` | `a-z0-9` | 36 |
 | `alnumcase` | `a-zA-Z0-9` | 62 |
-| `all` | 字母 + 数字 + 特殊符号 | 90+ |
+| `all` | Letters + Digits + Special Symbols | 90+ |
 
-## 💡 提示
+## 💡 Tips
 
-- 工具会**自动检测**加密类型（ZipCrypto / AES），无需手动配置
-- 运行过程中按 **Ctrl+C** 可随时中断
-- 如果全自动未找到密码，建议：
-  1. 下载大型字典（如 [rockyou.txt](https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt)）配合 `-d` 参数使用
-  2. 增大暴力破解范围：`--max-len 8` 或更大
-  3. 尝试回忆密码中包含的字符类型，选择对应字符集缩小范围
+- The tool will **automatically detect** the encryption type (ZipCrypto / AES); no manual configuration is required.
+- Press **Ctrl+C** to interrupt at any time.
+- If the password is not found in automatic mode, it is recommended to:
+  1. Download a large dictionary (like [rockyou.txt](https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt)) and use it with the `-d` parameter.
+  2. Increase the brute-force range: `--max-len 8` or more.
+  3. Try to recall the character types in the password and select the corresponding charset to narrow the search space.
 
-## ⚠️ 免责声明
+## ⚠️ Disclaimer
 
-本工具仅供学习和研究使用，用于恢复自己忘记的 ZIP 密码。请勿将其用于任何非法用途。使用本工具所产生的一切后果由使用者自行承担。
+This tool is for educational and research purposes only, intended for recovering one's own forgotten ZIP passwords. Do not use it for any illegal purposes. All consequences arising from the use of this tool are the responsibility of the user.
 
 ## 📄 License
 
