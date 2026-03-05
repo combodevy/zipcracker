@@ -94,6 +94,8 @@ If you have zero programming experience, please follow these steps:
 ### Q: `python` or `pip` is not recognized as an internal or external command?
 **A**: You likely missed the "Add to PATH" checkbox during Python installation.
 - **Solution**: Re-install Python and ensure that option is checked.
+- <img width="836" height="528" alt="image" src="https://github.com/user-attachments/assets/b4ab808d-ffab-4927-8388-390e229051b6" />
+
 
 ### Q: Installation is slow or timed out?
 **A**: Use a faster mirror (for users in specific regions):
