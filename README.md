@@ -1,3 +1,5 @@
+正式版见另一分支 【Another branch for stable version】
+
 # 🔓 ZIP Password Cracker
 
 [English](README.md) | [简体中文](README.zh-CN.md)
