@@ -58,6 +58,7 @@ python app.py
 - 前往 [Python 官网](https://www.python.org/downloads/windows/) 下载最新版。
 - **关键一步**：安装时一定要勾选底部的 **"Add Python to PATH"**（将 Python 添加到路径），否则后面会报错！
 - 点击 "Install Now" 直到完成。
+<img width="836" height="528" alt="image" src="https://github.com/user-attachments/assets/868c3886-7ac0-4485-a365-4f145808d2d6" />
 
 ### 2. 下载本工具
 - **如果你会用 Git**：在你要存放的文件夹打开终端，运行：
